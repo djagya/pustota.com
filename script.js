@@ -82,26 +82,31 @@ function drawVoidBackground() {
     return;
   }
 
+
   voidBuffer.shader(voidShader);
 
+
   voidShader.setUniform('u_resolution', [voidBuffer.width*2, voidBuffer.height*2]);
-  voidShader.setUniform('u_time', frameCount * 0.005);
+  voidShader.setUniform('u_time', frameCount * 0.1);
   voidShader.setUniform('u_voidColor', [voidColor[0]/255, voidColor[1]/255, voidColor[2]/255]);
-  voidShader.setUniform('u_brightness', voidBrightness / 255.0);
+  voidShader.setUniform('u_brightness', 1);
 
   voidBuffer.clear();
+
 
   // Draw a full-screen quad (covers the whole buffer in WebGL mode)
   voidBuffer.push();
   voidBuffer.noStroke();
-  // voidBuffer.texture(voidBuffer);
   voidBuffer.beginShape();
+
   voidBuffer.vertex(-voidBuffer.width/2, -voidBuffer.height/2, 0, 0);
   voidBuffer.vertex( voidBuffer.width/2, -voidBuffer.height/2, 1, 0);
   voidBuffer.vertex( voidBuffer.width/2,  voidBuffer.height/2, 1, 1);
   voidBuffer.vertex(-voidBuffer.width/2,  voidBuffer.height/2, 0, 1);
   voidBuffer.endShape(CLOSE);
+
   voidBuffer.pop();
+
 
   voidBuffer.resetShader();
 
@@ -248,8 +253,8 @@ function createNewFormation() {
   // Select formation type with adjusted probabilities
   let formationType;
   const rand = random();
-  if (rand < 0.4) formationType = FORMATIONS.LINE;
-  else if (rand < 0.7) formationType = FORMATIONS.CROSS;
+  if (rand < 0.5) formationType = FORMATIONS.LINE;
+  // else if (rand < 0.7) formationType = FORMATIONS.CROSS;
   else formationType = FORMATIONS.CIRCLE;
   
   // Adjust position to be center-based for WebGL mode
@@ -260,12 +265,12 @@ function createNewFormation() {
   const formation = new SymbolFormation(
     position.x - centerX,
     position.y - centerY,
-    6, // Fixed number of symbols for testing
+    random(5, 20), // Fixed number of symbols for testing
     fadeDuration,
     displayDuration,
     formationType,
     random([-1, 1]),
-    1,
+    random(1, 1.2),
     false
   );
   
@@ -299,8 +304,8 @@ class SymbolFormation {
     // Pre-calculate some values
     this.updateInterval = 1;
     this.rotationStep = rotationSpeed * rotationDirection;
-    this.symbolSize = 70 * scale;
-    this.spacing = 90 * scale;
+    this.symbolSize = 30 * scale;
+    this.spacing = 40 * scale;
     
     // Pre-calculate opacity steps
     this.fadeInStep = 255 / fadeInDuration;
@@ -315,7 +320,7 @@ class SymbolFormation {
   }
   
   createFormation() {
-    const baseRadius = 200 * this.scale;
+    const baseRadius = 120 * this.scale;
     const centerSymbolSize = this.symbolSize * 1.5; // 50% larger than regular symbols
     
     // For circle formation, add a center symbol first
