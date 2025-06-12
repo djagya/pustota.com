@@ -7,7 +7,7 @@ let centerY;
 let rotationSpeed = 0.002;
 let maxFormations = 5;
 let lastFormationTime = 0;
-let minTimeBetweenFormations = 150;
+let minTimeBetweenFormations = 60;
 let hasCenterFormation = false;
 let occupiedAreas = [];
 let lastOccupiedAreasUpdate = 0;
@@ -19,6 +19,13 @@ let currentGridPosition = { row: 1, col: 1 };
 const GRID_ROWS = 3;
 const GRID_COLS = 3;
 let lastFormationComplete = true;
+let noiseScale = 0.005;
+let noiseZ = 0;
+let noiseSpeed = 0.001;
+let noiseOctaves = 4;
+let noiseFalloff = 0.5;
+let voidColor = [20, 10, 30]; // Dark purple base color
+let voidBrightness = 40; // Maximum brightness for the void effect
 
 // Pre-calculate opacity values for smoother transitions
 const opacityLookup = new Array(256);
@@ -41,7 +48,10 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  // Create canvas with willReadFrequently attribute
+  const canvas = createCanvas(windowWidth, windowHeight);
+  canvas.drawingContext.canvas.willReadFrequently = true;
+  
   centerX = width / 2;
   centerY = height / 2;
   
@@ -55,20 +65,76 @@ function setup() {
   });
 }
 
+function drawVoidBackground() {
+  loadPixels();
+  
+  // Update noise Z coordinate for fluid motion
+  noiseZ += noiseSpeed;
+  
+  // Create fluid fractal pattern
+  for (let x = 0; x < width; x += 2) { // Step by 2 for performance
+    for (let y = 0; y < height; y += 2) {
+      // Create multiple layers of noise for fractal effect
+      let noiseVal = 0;
+      let amplitude = 1;
+      let frequency = 1;
+      
+      for (let i = 0; i < noiseOctaves; i++) {
+        let nx = x * noiseScale * frequency;
+        let ny = y * noiseScale * frequency;
+        noiseVal += noise(nx, ny, noiseZ) * amplitude;
+        
+        amplitude *= noiseFalloff;
+        frequency *= 2;
+      }
+      
+      // Normalize noise value
+      noiseVal = noiseVal / (1 - pow(noiseFalloff, noiseOctaves));
+      
+      // Create void-like color with subtle variations
+      let brightness = map(noiseVal, 0, 1, voidBrightness * 0.5, voidBrightness);
+      let r = voidColor[0] + brightness * 0.2;
+      let g = voidColor[1] + brightness * 0.1;
+      let b = voidColor[2] + brightness * 0.3;
+      
+      // Add subtle color variations based on position
+      let angle = atan2(y - centerY, x - centerX);
+      let distance = dist(x, y, centerX, centerY) / (min(width, height) * 0.5);
+      
+      // Add subtle purple/blue tint based on angle and distance
+      r += sin(angle * 2 + noiseZ) * 5 * (1 - distance);
+      g += cos(angle * 3 + noiseZ) * 3 * (1 - distance);
+      b += sin(angle * 4 + noiseZ) * 8 * (1 - distance);
+      
+      // Set pixel color with alpha for smooth blending
+      let alpha = map(noiseVal, 0, 1, 180, 255);
+      set(x, y, color(r, g, b, alpha));
+      set(x + 1, y, color(r, g, b, alpha));
+      set(x, y + 1, color(r, g, b, alpha));
+      set(x + 1, y + 1, color(r, g, b, alpha));
+    }
+  }
+  updatePixels();
+}
+
 function draw() {
-  background(0);
+  // Draw void background
+  drawVoidBackground();
   
   // Update and show formations
   let allComplete = true;
   formations = formations.filter(formation => {
-    formation.update();
-    formation.show();
-    
-    if (formation.state !== 'done') {
-      allComplete = false;
+    if (formation && formation.update) {
+      formation.update();
+      formation.show();
+      
+      if (formation.state !== 'done') {
+        allComplete = false;
+      }
+      
+      return formation.state !== 'done';
     }
-    
-    return formation.state !== 'done';
+    return false;
   });
   
   // If all formations are complete, allow creating a new one
@@ -185,17 +251,24 @@ function createNewFormation() {
   else if (rand < 0.7) formationType = FORMATIONS.CROSS;
   else formationType = FORMATIONS.CIRCLE;
   
+  // Create new formation with fixed parameters for testing
   const formation = new SymbolFormation(
     position.x,
     position.y,
-    random(4, 8),
-    random(fadeDuration/2, fadeDuration + fadeDuration/2),
-    random(displayDuration/2, displayDuration + displayDuration / 2),
+    6, // Fixed number of symbols for testing
+    fadeDuration,
+    displayDuration,
     formationType,
     random([-1, 1]),
-    1, // All formations are secondary size
-    false // No center formations in grid pattern
+    1,
+    false
   );
+  
+  console.log('Creating new formation:', {
+    type: formationType,
+    position: position,
+    symbols: formation.symbols.length
+  });
   
   formations.push(formation);
   lastFormationComplete = false;
@@ -219,7 +292,7 @@ class SymbolFormation {
     this.lastUpdateTime = 0;
     
     // Pre-calculate some values
-    this.updateInterval = 1; // All formations update at the same rate
+    this.updateInterval = 1;
     this.rotationStep = rotationSpeed * rotationDirection;
     this.symbolSize = 70 * scale;
     this.spacing = 90 * scale;
@@ -228,8 +301,12 @@ class SymbolFormation {
     this.fadeInStep = 255 / fadeInDuration;
     this.fadeOutStep = 255 / fadeInDuration;
     
-    this.createFormation();
-    this.updateRotationMatrix();
+    // Verify symbols are available before creating formation
+    if (symbolImages.length > 0) {
+      this.createFormation();
+    } else {
+      console.error('No symbols available for formation creation');
+    }
   }
   
   createFormation() {
@@ -313,47 +390,34 @@ class SymbolFormation {
   }
   
   update() {
-    // Skip update if not enough frames have passed
-    if (frameCount % this.updateInterval !== 0) {
-      return;
-    }
+    if (frameCount - this.lastUpdateTime < this.updateInterval) return;
+    this.lastUpdateTime = frameCount;
     
     this.lifeTime++;
-    
-    // Update rotation less frequently
-    if (frameCount % 4 === 0) {
-      this.rotation += this.rotationStep;
-      this.updateRotationMatrix();
-    }
+    this.rotation += this.rotationStep;
     
     // Update state and opacity
-    switch(this.state) {
-      case 'fadeIn':
-        this.opacity = min(255, this.opacity + this.fadeInStep);
-        if (this.opacity >= 255) {
-          this.state = 'display';
-          this.lifeTime = 0;
-        }
-        break;
-        
-      case 'display':
-        if (this.lifeTime >= this.displayDuration) {
-          this.state = 'fadeOut';
-          this.lifeTime = 0;
-        }
-        break;
-        
-      case 'fadeOut':
-        this.opacity = max(0, this.opacity - this.fadeOutStep);
-        if (this.opacity <= 0) {
-          this.state = 'done';
-        }
-        break;
+    if (this.state === 'fadeIn') {
+      this.opacity = min(255, this.opacity + this.fadeInStep);
+      if (this.opacity >= 255) {
+        this.state = 'display';
+        this.lifeTime = 0;
+      }
+    } else if (this.state === 'display') {
+      if (this.lifeTime >= this.displayDuration) {
+        this.state = 'fadeOut';
+      }
+    } else if (this.state === 'fadeOut') {
+      this.opacity = max(0, this.opacity - this.fadeOutStep);
+      if (this.opacity <= 0) {
+        this.state = 'done';
+      }
     }
   }
   
   show() {
-    if (this.opacity <= 0) return;
+    if (this.opacity <= 0 ) return;
+    
     
     push();
     translate(this.x, this.y);
@@ -361,26 +425,25 @@ class SymbolFormation {
     
     // Draw all symbols
     for (let symbol of this.symbols) {
-      push();
-      translate(symbol.x, symbol.y);
-      rotate(-this.rotation); // Counter-rotate to keep symbols upright
-      
-      // Apply opacity to the symbol
-      tint(255, this.opacity);
-      image(symbol.symbol, -symbol.size/2, -symbol.size/2, symbol.size, symbol.size);
-      pop();
+      if (symbol && symbol.symbol && symbol.symbol.width > 0) {
+        push();
+        translate(symbol.x, symbol.y);
+        rotate(-this.rotation); // Counter-rotate to keep symbols upright
+        
+        // Apply opacity to the symbol
+        tint(255, this.opacity);
+        image(symbol.symbol, -symbol.size/2, -symbol.size/2, symbol.size, symbol.size);
+        pop();
+      }
     }
     
     pop();
   }
-  
-  updateRotationMatrix() {
-    const cos = Math.cos(this.rotation);
-    const sin = Math.sin(this.rotation);
-    this.rotationMatrix = [cos, -sin, sin, cos];
-  }
-  
-  isComplete() {
-    return this.state === 'done';
-  }
+}
+
+// Add window resize handler to maintain void effect
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  centerX = width / 2;
+  centerY = height / 2;
 }
