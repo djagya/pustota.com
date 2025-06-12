@@ -26,8 +26,9 @@ let noiseOctaves = 4;
 let noiseFalloff = 0.5;
 let voidColor = [20, 10, 30]; // Dark purple base color
 let voidBrightness = 40; // Maximum brightness for the void effect
+let voidShader;
 let voidBuffer;
-let voidCanvas;
+let shaderReady = false;
 let formationCanvas;
 
 // Pre-calculate opacity values for smoother transitions
@@ -44,6 +45,9 @@ const FORMATIONS = {
 };
 
 function preload() {
+  // Load shader files before setup
+  voidShader = loadShader('void.vert', 'void.frag');
+  
   // Load all symbol images
   for (let i = 1; i <= 26; i++) {
     symbolImages.push(loadImage(`assets/symbols/symbol-${i}.png`));
@@ -51,104 +55,82 @@ function preload() {
 }
 
 function setup() {
-  // Create two separate canvases
-  voidCanvas = createCanvas(windowWidth, windowHeight);
-  voidCanvas.drawingContext.canvas.willReadFrequently = true;
+  // Create canvas with WebGL renderer
+  createCanvas(windowWidth, windowHeight, WEBGL);
   
-  // Create a second canvas for formations
-  formationCanvas = createGraphics(windowWidth, windowHeight);
-  formationCanvas.drawingContext.canvas.willReadFrequently = true;
+  // Create buffer for void background
+  voidBuffer = createGraphics(windowWidth, windowHeight, WEBGL);
   
+  // Set up WebGL context
+  _renderer.GL.blendFunc(_renderer.GL.SRC_ALPHA, _renderer.GL.ONE_MINUS_SRC_ALPHA);
+  
+  // Initialize other variables
   centerX = width / 2;
   centerY = height / 2;
+  lastFormationTime = 0;
+  lastFormationComplete = true;
+  occupiedAreas = [];
   
-  // Load and prepare symbols
-  for (let i = 1; i <= 5; i++) {
-    let img = loadImage(`assets/symbols/symbol-${i}.png`);
-    symbolImages.push(img);
-  }
-  
-  // Ambient sound loop using Tone.js
-  const synth = new Tone.AMSynth().toDestination();
-  Tone.Transport.scheduleRepeat(time => {
-    synth.triggerAttackRelease("C2", "8n", time);
-  }, "2n");
-  document.querySelector('body').addEventListener('click', () => {
-    Tone.Transport.start();
-  });
+  // Mark shader as ready
+  shaderReady = true;
+
 }
 
 function drawVoidBackground() {
-  // Draw void background on the main canvas
-  loadPixels();
-  
-  // Update noise Z coordinate for fluid motion
-  noiseZ += noiseSpeed;
-  
-  // Create fluid fractal pattern
-  for (let x = 0; x < width; x += 2) {
-    for (let y = 0; y < height; y += 2) {
-      // Create multiple layers of noise for fractal effect
-      let noiseVal = 0;
-      let amplitude = 1;
-      let frequency = 1;
-      
-      for (let i = 0; i < noiseOctaves; i++) {
-        let nx = x * noiseScale * frequency;
-        let ny = y * noiseScale * frequency;
-        noiseVal += noise(nx, ny, noiseZ) * amplitude;
-        
-        amplitude *= noiseFalloff;
-        frequency *= 2;
-      }
-      
-      // Normalize noise value
-      noiseVal = noiseVal / (1 - pow(noiseFalloff, noiseOctaves));
-      
-      // Create void-like color with subtle variations
-      let brightness = map(noiseVal, 0, 1, voidBrightness * 0.5, voidBrightness);
-      let r = voidColor[0] + brightness * 0.2;
-      let g = voidColor[1] + brightness * 0.1;
-      let b = voidColor[2] + brightness * 0.3;
-      
-      // Add subtle color variations based on position
-      let angle = atan2(y - centerY, x - centerX);
-      let distance = dist(x, y, centerX, centerY) / (min(width, height) * 0.5);
-      
-      // Add subtle purple/blue tint based on angle and distance
-      r += sin(angle * 2 + noiseZ) * 5 * (1 - distance);
-      g += cos(angle * 3 + noiseZ) * 3 * (1 - distance);
-      b += sin(angle * 4 + noiseZ) * 8 * (1 - distance);
-      
-      // Set pixel color with alpha for smooth blending
-      let alpha = map(noiseVal, 0, 1, 180, 255);
-      set(x, y, color(r, g, b, alpha));
-      set(x + 1, y, color(r, g, b, alpha));
-      set(x, y + 1, color(r, g, b, alpha));
-      set(x + 1, y + 1, color(r, g, b, alpha));
-    }
+  if (!shaderReady || !voidShader) {
+    console.warn('Shader not ready yet');
+    return;
   }
-  updatePixels();
+
+  voidBuffer.shader(voidShader);
+
+  voidShader.setUniform('u_resolution', [voidBuffer.width*2, voidBuffer.height*2]);
+  voidShader.setUniform('u_time', frameCount * 0.1);
+  voidShader.setUniform('u_voidColor', [voidColor[0]/255, voidColor[1]/255, voidColor[2]/255]);
+  voidShader.setUniform('u_brightness', voidBrightness / 255.0);
+
+  voidBuffer.clear();
+
+  // Draw a full-screen quad (covers the whole buffer in WebGL mode)
+  voidBuffer.push();
+  voidBuffer.noStroke();
+  voidBuffer.beginShape();
+  voidBuffer.vertex(-voidBuffer.width/2, -voidBuffer.height/2, 0, 0);
+  voidBuffer.vertex( voidBuffer.width/2, -voidBuffer.height/2, 1, 0);
+  voidBuffer.vertex( voidBuffer.width/2,  voidBuffer.height/2, 1, 1);
+  voidBuffer.vertex(-voidBuffer.width/2,  voidBuffer.height/2, 0, 1);
+  voidBuffer.endShape(CLOSE);
+  voidBuffer.pop();
+
+  voidBuffer.resetShader();
+
+  push();
+  image(voidBuffer, -width/2, -height/2, width, height);
+  pop();
 }
 
 function draw() {
   // Clear everything first
   clear();
   
-  // Draw void background on the main canvas
-  try {
-    drawVoidBackground();
-  } catch (e) {
-    console.error(e);
+  // Draw void background using shader
+  if (shaderReady) {
+    try {
+      drawVoidBackground();
+    } catch (e) {
+      console.error('Error drawing void background:', e);
+      // If shader fails, mark it as not ready to prevent continuous errors
+      shaderReady = false;
+    }
   }
   
-  // Draw formations directly on the main canvas
+  // Draw formations
   let allComplete = true;
   formations = formations.filter(formation => {
     if (formation && formation.update) {
       formation.update();
       
-      // Draw formation directly on the main canvas
+      // Draw formation
       push();
       formation.show();
       pop();
@@ -161,7 +143,6 @@ function draw() {
     }
     return false;
   });
-
   
   // If all formations are complete, allow creating a new one
   if (allComplete) {
@@ -270,10 +251,14 @@ function createNewFormation() {
   else if (rand < 0.7) formationType = FORMATIONS.CROSS;
   else formationType = FORMATIONS.CIRCLE;
   
+  // Adjust position to be center-based for WebGL mode
+  const centerX = width / 2;
+  const centerY = height / 2;
+  
   // Create new formation with fixed parameters for testing
   const formation = new SymbolFormation(
-    position.x,
-    position.y,
+    position.x - centerX,
+    position.y - centerY,
     6, // Fixed number of symbols for testing
     fadeDuration,
     displayDuration,
@@ -285,7 +270,7 @@ function createNewFormation() {
   
   console.log('Creating new formation:', {
     type: formationType,
-    position: position,
+    position: { x: position.x - centerX, y: position.y - centerY },
     symbols: formation.symbols.length
   });
   
@@ -461,7 +446,13 @@ class SymbolFormation {
 // Update window resize handler
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
-  formationCanvas = createGraphics(windowWidth, windowHeight);
+  
+  // Update center coordinates
   centerX = width / 2;
   centerY = height / 2;
+  
+  // Resize void buffer if it exists
+  if (voidBuffer) {
+    voidBuffer.resizeCanvas(width, height);
+  }
 }
