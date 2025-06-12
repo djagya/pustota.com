@@ -1,5 +1,10 @@
 let symbolImages = [];
 let symbolLines = [];
+let currentLine = null;
+let fadeDuration = 60;
+let displayDuration = 120; // How long the line stays fully visible
+let centerX;
+let centerY;
 
 function preload() {
   // Load all symbol images
@@ -10,18 +15,9 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  centerX = width / 2;
+  centerY = height / 2;
   
-  // Create several symbol lines
-  for (let i = 0; i < 50; i++) {
-    symbolLines.push(new SymbolLine(
-      random(width),  // x position
-      random(-height, 0), // Start above the screen
-      random(2, 8),  // number of symbols in line
-      random(-0.5, 0.5),  // slight horizontal drift
-      1   // consistent downward movement
-    ));
-  }
-
   // Ambient sound loop using Tone.js
   const synth = new Tone.AMSynth().toDestination();
   Tone.Transport.scheduleRepeat(time => {
@@ -33,52 +29,92 @@ function setup() {
 }
 
 function draw() {
-  background(0, 40);  // Very subtle afterimage with alpha of 5
-  for (let line of symbolLines) {
-    line.update();
-    line.show();
+  background(0, 40);
+  
+  // Create new line if there isn't one or if the current one is done
+  if (!currentLine || currentLine.isComplete()) {
+    currentLine = new SymbolLine(
+      centerX,
+      centerY,
+      random(3, 12),
+      random(fadeDuration/2, fadeDuration),
+      random(displayDuration/2, displayDuration)
+    );
   }
+  
+  // Update and show current line
+  currentLine.update();
+  currentLine.show();
 }
 
 class SymbolLine {
-  constructor(x, y, length, dirX, dirY) {
+  constructor(x, y, length, fadeInDuration, displayDuration) {
     this.x = x;
     this.y = y;
     this.length = length;
-    this.dirX = dirX;
-    this.dirY = dirY;
-    this.speed = random(1, 2); // Slightly faster speed for downward movement
-    this.noiseOffset = random(1000);
+    this.fadeInDuration = fadeInDuration;
+    this.displayDuration = displayDuration;
     this.symbols = [];
-    this.spacing = 40;
+    this.spacing = 80;
+    this.symbolSize = 60;
+    this.opacity = 0;
+    this.lifeTime = 0;
+    this.state = 'fadeIn'; // States: 'fadeIn', 'display', 'fadeOut', 'complete'
     
-    // Create symbols for this line
+    // Calculate total width of the line
+    let totalWidth = (length - 1) * this.spacing - this.symbolSize  * (length - 1);
+    let startX = this.x - totalWidth / 2;
+    
+    // Create symbols for this line with precise positioning
     for (let i = 0; i < length; i++) {
       this.symbols.push({
         symbol: random(symbolImages),
-        offset: i * this.spacing
+        x: startX + (i * this.spacing)  // Calculate exact x position for each symbol
       });
     }
   }
 
   update() {
-    // Update position with slight horizontal drift and consistent downward movement
-    this.x += map(noise(this.noiseOffset), 0, 1, -0.3, 0.3) + this.dirX * this.speed;
-    this.y += this.dirY * this.speed; // Consistent downward movement
-    this.noiseOffset += 0.005;
-
-    // Wrap around screen
-    if (this.x > width + this.length * this.spacing) this.x = -this.length * this.spacing;
-    if (this.x < -this.length * this.spacing) this.x = width + this.length * this.spacing;
-    if (this.y > height + 100) this.y = -100; // Reset to top when reaching bottom
+    this.lifeTime++;
+    
+    // Update opacity based on state
+    switch(this.state) {
+      case 'fadeIn':
+        this.opacity = map(this.lifeTime, 0, this.fadeInDuration, 0, 255);
+        if (this.lifeTime >= this.fadeInDuration) {
+          this.state = 'display';
+          this.lifeTime = 0;
+        }
+        break;
+        
+      case 'display':
+        this.opacity = 255;
+        if (this.lifeTime >= this.displayDuration) {
+          this.state = 'fadeOut';
+          this.lifeTime = 0;
+        }
+        break;
+        
+      case 'fadeOut':
+        this.opacity = map(this.lifeTime, 0, this.fadeInDuration, 255, 0);
+        if (this.lifeTime >= this.fadeInDuration) {
+          this.state = 'complete';
+        }
+        break;
+    }
   }
 
   show() {
-    // Draw each symbol in the line with minimal wave motion
+    // Draw each symbol in the line
     for (let symbol of this.symbols) {
-      let x = this.x + symbol.offset;
-      let y = this.y + sin(frameCount * 0.01 + symbol.offset * 0.05) * 5; // Reduced wave motion
-      image(symbol.symbol, x, y, 40, 40);
+      let y = this.y + sin(frameCount * 0.02 + symbol.x * 0.05) * 3; // Subtle floating motion
+      tint(255, this.opacity);
+      image(symbol.symbol, symbol.x -this.symbolSize * this.symbols.length/2, y - this.symbolSize/2, this.symbolSize, this.symbolSize);
     }
+    noTint();
+  }
+
+  isComplete() {
+    return this.state === 'complete';
   }
 }
