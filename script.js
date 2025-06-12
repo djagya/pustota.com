@@ -85,7 +85,7 @@ function drawVoidBackground() {
   voidBuffer.shader(voidShader);
 
   voidShader.setUniform('u_resolution', [voidBuffer.width*2, voidBuffer.height*2]);
-  voidShader.setUniform('u_time', frameCount * 0.1);
+  voidShader.setUniform('u_time', frameCount * 0.005);
   voidShader.setUniform('u_voidColor', [voidColor[0]/255, voidColor[1]/255, voidColor[2]/255]);
   voidShader.setUniform('u_brightness', voidBrightness / 255.0);
 
@@ -94,6 +94,7 @@ function drawVoidBackground() {
   // Draw a full-screen quad (covers the whole buffer in WebGL mode)
   voidBuffer.push();
   voidBuffer.noStroke();
+  // voidBuffer.texture(voidBuffer);
   voidBuffer.beginShape();
   voidBuffer.vertex(-voidBuffer.width/2, -voidBuffer.height/2, 0, 0);
   voidBuffer.vertex( voidBuffer.width/2, -voidBuffer.height/2, 1, 0);

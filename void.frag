@@ -39,15 +39,15 @@ float snoise(vec2 v) {
 }
 
 // Fractal Brownian Motion
-float fbm(vec2 p) {
+float fbm(vec2 p, float t) {
     float value = 0.0;
     float amplitude = 0.5;
-    float frequency = 0.0;
+    float frequency = 1.0;
     float falloff = 0.5;
     
     // Add several octaves of noise
-    for(int i = 0; i < 5; i++) {
-        value += amplitude * snoise(p * frequency);
+    for(int i = 0; i < 7; i++) {
+        value += amplitude * snoise(p * frequency + t * 0.2 * frequency);
         frequency *= 2.0;
         amplitude *= falloff;
     }
@@ -60,30 +60,40 @@ void main() {
     vec2 uv = gl_FragCoord.xy / u_resolution.xy;
     vec2 center = vec2(0.5, 0.5);
     
-    // Create fluid motion
-    float time = u_time * 0.1;
-    vec2 p = uv * 4.0;
-    p += time * vec2(0.1, 0.2);
-    
-    // Generate fractal noise
-    float noise = fbm(p);
-    noise = (noise + 1.0) * 0.5; // Normalize to 0-1
-    
-    // Create void-like color with subtle variations
-    float brightness = mix(u_brightness * 0.5, u_brightness, noise);
-    vec3 color = u_voidColor + vec3(brightness * 0.2, brightness * 0.1, brightness * 0.3);
-    
-    // Add subtle color variations based on position
+    float t = u_time;
+
+    // Animate and warp the coordinates for more chaos
+    vec2 p = uv * 6.0;
+    p += 0.5 * vec2(sin(t * 0.7), cos(t * 0.4));
+    p += 0.2 * vec2(sin(uv.y * 10.0 + t), cos(uv.x * 10.0 - t));
+    p += 0.1 * vec2(sin(uv.x * 30.0 + t * 2.0), cos(uv.y * 30.0 - t * 2.0));
+
+    // Layer multiple FBM fields
+    float n1 = fbm(p, t);
+    float n2 = fbm(p + 10.0 * n1, t * 1.3);
+    float n3 = fbm(p - 10.0 * n2, t * 0.7);
+
+    float chaos = (n1 + n2 + n3) / 3.0;
+    chaos = (chaos + 1.0) * 0.5; // Normalize to 0-1
+
+    // Color shifting and chaos
+    float brightness = mix(u_brightness * 0.3, u_brightness, chaos);
+    vec3 base = u_voidColor + vec3(brightness * 0.3, brightness * 0.2, brightness * 0.4);
+
+    // Add time-based color shifts
+    base.r += 0.15 * sin(t + chaos * 6.0 + uv.x * 8.0);
+    base.g += 0.12 * cos(t * 1.2 + chaos * 8.0 + uv.y * 8.0);
+    base.b += 0.18 * sin(t * 0.7 + chaos * 10.0 + uv.x * 6.0 - uv.y * 6.0);
+
+    // Add subtle radial and angular chaos
     float angle = atan(uv.y - 0.5, uv.x - 0.5);
     float distance = length(uv - center) * 2.0;
-    
-    // Add subtle purple/blue tint based on angle and distance
-    color.r += sin(angle * 2.0 + time) * 0.05 * (1.0 - distance);
-    color.g += cos(angle * 3.0 + time) * 0.03 * (1.0 - distance);
-    color.b += sin(angle * 4.0 + time) * 0.08 * (1.0 - distance);
-    
+    base.r += sin(angle * 3.0 + t) * 0.08 * (1.0 - distance);
+    base.g += cos(angle * 5.0 + t * 0.7) * 0.06 * (1.0 - distance);
+    base.b += sin(angle * 7.0 - t * 0.5) * 0.12 * (1.0 - distance);
+
     // Add alpha for smooth blending
-    float alpha = mix(0.7, 1.0, noise);
+    float alpha = mix(0.7, 1.0, chaos);
     
-    gl_FragColor = vec4(color, alpha);
+    gl_FragColor = vec4(base, alpha);
 } 
