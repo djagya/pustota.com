@@ -66,13 +66,15 @@ function setup() {
 }
 
 function drawVoidBackground() {
-  loadPixels();
+  // Create a separate graphics buffer for the void background
+  let voidBuffer = createGraphics(width, height);
+  voidBuffer.loadPixels();
   
   // Update noise Z coordinate for fluid motion
   noiseZ += noiseSpeed;
   
-  // Create fluid fractal pattern
-  for (let x = 0; x < width; x += 2) { // Step by 2 for performance
+  // Create fluid fractal pattern in the buffer
+  for (let x = 0; x < width; x += 2) {
     for (let y = 0; y < height; y += 2) {
       // Create multiple layers of noise for fractal effect
       let noiseVal = 0;
@@ -108,25 +110,41 @@ function drawVoidBackground() {
       
       // Set pixel color with alpha for smooth blending
       let alpha = map(noiseVal, 0, 1, 180, 255);
-      set(x, y, color(r, g, b, alpha));
-      set(x + 1, y, color(r, g, b, alpha));
-      set(x, y + 1, color(r, g, b, alpha));
-      set(x + 1, y + 1, color(r, g, b, alpha));
+      voidBuffer.set(x, y, color(r, g, b, alpha));
+      voidBuffer.set(x + 1, y, color(r, g, b, alpha));
+      voidBuffer.set(x, y + 1, color(r, g, b, alpha));
+      voidBuffer.set(x + 1, y + 1, color(r, g, b, alpha));
     }
   }
-  updatePixels();
+  voidBuffer.updatePixels();
+  
+  // Draw the void background buffer to the main canvas
+  image(voidBuffer, 0, 0);
 }
 
 function draw() {
-  // Draw void background
-  drawVoidBackground();
+    // Draw void background
+    // drawVoidBackground();
+  // Clear the canvas first
+  clear();
+  
+
+  
+  // Reset the drawing context after void background
+  push();
+  // Reset any transformations or styles that might affect formation rendering
+  resetMatrix();
+  noTint();
   
   // Update and show formations
   let allComplete = true;
   formations = formations.filter(formation => {
     if (formation && formation.update) {
       formation.update();
+      // Draw formation with fresh context
+      push();
       formation.show();
+      pop();
       
       if (formation.state !== 'done') {
         allComplete = false;
@@ -149,6 +167,8 @@ function draw() {
     createNewFormation();
     lastFormationTime = frameCount;
   }
+  
+  pop();
 }
 
 function getFormationRadius(formation) {
@@ -416,21 +436,22 @@ class SymbolFormation {
   }
   
   show() {
-    if (this.opacity <= 0 ) return;
+    if (this.opacity <= 0) return;
     
-    
+    // Reset any previous transformations
     push();
     translate(this.x, this.y);
     rotate(this.rotation);
     
-    // Draw all symbols
+    // Draw all symbols with fresh context for each
     for (let symbol of this.symbols) {
-      if (symbol && symbol.symbol && symbol.symbol.width > 0) {
+      if (symbol && symbol.symbol) {
         push();
         translate(symbol.x, symbol.y);
         rotate(-this.rotation); // Counter-rotate to keep symbols upright
         
-        // Apply opacity to the symbol
+        // Reset tint and set new one
+        noTint();
         tint(255, this.opacity);
         image(symbol.symbol, -symbol.size/2, -symbol.size/2, symbol.size, symbol.size);
         pop();
