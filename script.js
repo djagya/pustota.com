@@ -26,6 +26,9 @@ let noiseOctaves = 4;
 let noiseFalloff = 0.5;
 let voidColor = [20, 10, 30]; // Dark purple base color
 let voidBrightness = 40; // Maximum brightness for the void effect
+let voidBuffer;
+let voidCanvas;
+let formationCanvas;
 
 // Pre-calculate opacity values for smoother transitions
 const opacityLookup = new Array(256);
@@ -48,12 +51,22 @@ function preload() {
 }
 
 function setup() {
-  // Create canvas with willReadFrequently attribute
-  const canvas = createCanvas(windowWidth, windowHeight);
-  canvas.drawingContext.canvas.willReadFrequently = true;
+  // Create two separate canvases
+  voidCanvas = createCanvas(windowWidth, windowHeight);
+  voidCanvas.drawingContext.canvas.willReadFrequently = true;
+  
+  // Create a second canvas for formations
+  formationCanvas = createGraphics(windowWidth, windowHeight);
+  formationCanvas.drawingContext.canvas.willReadFrequently = true;
   
   centerX = width / 2;
   centerY = height / 2;
+  
+  // Load and prepare symbols
+  for (let i = 1; i <= 5; i++) {
+    let img = loadImage(`assets/symbols/symbol-${i}.png`);
+    symbolImages.push(img);
+  }
   
   // Ambient sound loop using Tone.js
   const synth = new Tone.AMSynth().toDestination();
@@ -66,14 +79,13 @@ function setup() {
 }
 
 function drawVoidBackground() {
-  // Create a separate graphics buffer for the void background
-  let voidBuffer = createGraphics(width, height);
-  voidBuffer.loadPixels();
+  // Draw void background on the main canvas
+  loadPixels();
   
   // Update noise Z coordinate for fluid motion
   noiseZ += noiseSpeed;
   
-  // Create fluid fractal pattern in the buffer
+  // Create fluid fractal pattern
   for (let x = 0; x < width; x += 2) {
     for (let y = 0; y < height; y += 2) {
       // Create multiple layers of noise for fractal effect
@@ -110,38 +122,33 @@ function drawVoidBackground() {
       
       // Set pixel color with alpha for smooth blending
       let alpha = map(noiseVal, 0, 1, 180, 255);
-      voidBuffer.set(x, y, color(r, g, b, alpha));
-      voidBuffer.set(x + 1, y, color(r, g, b, alpha));
-      voidBuffer.set(x, y + 1, color(r, g, b, alpha));
-      voidBuffer.set(x + 1, y + 1, color(r, g, b, alpha));
+      set(x, y, color(r, g, b, alpha));
+      set(x + 1, y, color(r, g, b, alpha));
+      set(x, y + 1, color(r, g, b, alpha));
+      set(x + 1, y + 1, color(r, g, b, alpha));
     }
   }
-  voidBuffer.updatePixels();
-  
-  // Draw the void background buffer to the main canvas
-  image(voidBuffer, 0, 0);
+  updatePixels();
 }
 
 function draw() {
-    // Draw void background
-    // drawVoidBackground();
-  // Clear the canvas first
+  // Clear everything first
   clear();
   
-
+  // Draw void background on the main canvas
+  try {
+    drawVoidBackground();
+  } catch (e) {
+    console.error(e);
+  }
   
-  // Reset the drawing context after void background
-  push();
-  // Reset any transformations or styles that might affect formation rendering
-  resetMatrix();
-  noTint();
-  
-  // Update and show formations
+  // Draw formations directly on the main canvas
   let allComplete = true;
   formations = formations.filter(formation => {
     if (formation && formation.update) {
       formation.update();
-      // Draw formation with fresh context
+      
+      // Draw formation directly on the main canvas
       push();
       formation.show();
       pop();
@@ -154,6 +161,7 @@ function draw() {
     }
     return false;
   });
+
   
   // If all formations are complete, allow creating a new one
   if (allComplete) {
@@ -162,13 +170,9 @@ function draw() {
   
   // Create new formation if conditions are met
   if (formations.length < maxFormations && 
-      frameCount - lastFormationTime > minTimeBetweenFormations && 
       lastFormationComplete) {
     createNewFormation();
-    lastFormationTime = frameCount;
   }
-  
-  pop();
 }
 
 function getFormationRadius(formation) {
@@ -208,11 +212,6 @@ function removeOccupiedArea(x, y) {
 }
 
 function updateOccupiedAreas() {
-  if (frameCount - lastOccupiedAreasUpdate < OCCUPIED_AREAS_UPDATE_INTERVAL) {
-    return;
-  }
-  
-  lastOccupiedAreasUpdate = frameCount;
   occupiedAreas = [];
   
   // Pre-calculate array size and update occupied areas
@@ -410,9 +409,6 @@ class SymbolFormation {
   }
   
   update() {
-    if (frameCount - this.lastUpdateTime < this.updateInterval) return;
-    this.lastUpdateTime = frameCount;
-    
     this.lifeTime++;
     this.rotation += this.rotationStep;
     
@@ -438,20 +434,20 @@ class SymbolFormation {
   show() {
     if (this.opacity <= 0) return;
     
-    // Reset any previous transformations
     push();
     translate(this.x, this.y);
     rotate(this.rotation);
     
-    // Draw all symbols with fresh context for each
+    // Draw all symbols
     for (let symbol of this.symbols) {
       if (symbol && symbol.symbol) {
         push();
         translate(symbol.x, symbol.y);
         rotate(-this.rotation); // Counter-rotate to keep symbols upright
         
-        // Reset tint and set new one
+        // Reset any previous tint
         noTint();
+        // Apply new tint for this symbol
         tint(255, this.opacity);
         image(symbol.symbol, -symbol.size/2, -symbol.size/2, symbol.size, symbol.size);
         pop();
@@ -462,9 +458,10 @@ class SymbolFormation {
   }
 }
 
-// Add window resize handler to maintain void effect
+// Update window resize handler
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  formationCanvas = createGraphics(windowWidth, windowHeight);
   centerX = width / 2;
   centerY = height / 2;
 }
