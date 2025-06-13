@@ -1,31 +1,28 @@
 import p5 from "p5";
 
-
-export type FormationType = 'line' | 'cross' | 'circle'
-export type FormationState = 'fadeIn' | 'display' | 'fadeOut' | 'done'
+export type FormationType = "line" | "cross" | "circle";
+export type FormationState = "fadeIn" | "display" | "fadeOut" | "done";
 
 export let rotationSpeed = 0.002;
 
 export interface SymbolData {
-  x: number
-  y: number
-  size: number
-  symbol: p5.Image
-  rotation: number
-  currentX?: number
-  currentY?: number
-  history?: Array<{ x: number, y: number }>
+  x: number;
+  y: number;
+  size: number;
+  symbol: p5.Image;
+  rotation: number;
+  currentX?: number;
+  currentY?: number;
+  history?: Array<{ x: number; y: number }>;
 }
 
-
 export const FORMATIONS = {
-  LINE: 'line' as FormationType,
-  CROSS: 'cross' as FormationType,
-  CIRCLE: 'circle' as FormationType
+  LINE: "line" as FormationType,
+  CROSS: "cross" as FormationType,
+  CIRCLE: "circle" as FormationType,
 };
 
-
-export class SymbolFormation {
+export class SymbolsGroup {
   x: number;
   y: number;
   length: number;
@@ -37,6 +34,7 @@ export class SymbolFormation {
   symbols: SymbolData[];
   opacity: number;
   lifeTime: number;
+  animationTime: number; // Continuous counter for animations
   rotation: number;
   state: FormationState;
   lastUpdateTime: number;
@@ -48,17 +46,21 @@ export class SymbolFormation {
   fadeOutStep: number;
   isCenter: boolean;
 
-  constructor(protected readonly p: p5, protected readonly symbolImages: unknown[], config: {
-    x: number,
-    y: number,
-    length: number,
-    fadeInDuration: number,
-    displayDuration: number,
-    formationType: FormationType,
-    rotationDirection: number,
-    scale: number,
-    isCenter: boolean
-  }) {
+  constructor(
+    protected readonly p: p5,
+    protected readonly symbolImages: unknown[],
+    config: {
+      x: number;
+      y: number;
+      length: number;
+      fadeInDuration: number;
+      displayDuration: number;
+      formationType: FormationType;
+      rotationDirection: number;
+      scale: number;
+      isCenter: boolean;
+    },
+  ) {
     this.x = config.x;
     this.y = config.y;
     this.length = config.length;
@@ -70,8 +72,9 @@ export class SymbolFormation {
     this.symbols = [];
     this.opacity = 0;
     this.lifeTime = 0;
+    this.animationTime = 0;
     this.rotation = 0;
-    this.state = 'fadeIn';
+    this.state = "fadeIn";
     this.lastUpdateTime = 0;
     this.updateInterval = 1;
     this.rotationStep = rotationSpeed * config.rotationDirection;
@@ -84,14 +87,13 @@ export class SymbolFormation {
     if (this.symbolImages.length > 0) {
       this.createFormation();
     } else {
-      console.error('No symbols available for formation creation');
+      console.error("No symbols available for formation creation");
     }
   }
 
   createFormation() {
     const baseRadius = 120 * this.scale;
     const centerSymbolSize = this.symbolSize * 1.5; // 50% larger than regular symbols
-
 
     // For circle formation, add a center symbol first
     if (this.formationType === FORMATIONS.CIRCLE) {
@@ -100,7 +102,7 @@ export class SymbolFormation {
         y: 0,
         size: centerSymbolSize,
         symbol: this.p.random(this.symbolImages),
-        rotation: 0
+        rotation: 0,
       };
       this.symbols.push(centerSymbol);
     }
@@ -115,7 +117,7 @@ export class SymbolFormation {
             y: 0,
             size: this.symbolSize,
             symbol: this.p.random(this.symbolImages),
-            rotation: 0
+            rotation: 0,
           });
         }
         break;
@@ -132,7 +134,7 @@ export class SymbolFormation {
               y: 0,
               size: this.symbolSize,
               symbol: this.p.random(this.symbolImages),
-              rotation: 0
+              rotation: 0,
             });
           }
           // Vertical line
@@ -143,7 +145,7 @@ export class SymbolFormation {
               y: i * layerSpacing,
               size: this.symbolSize,
               symbol: this.p.random(this.symbolImages),
-              rotation: 0
+              rotation: 0,
             });
           }
         }
@@ -161,7 +163,7 @@ export class SymbolFormation {
             y: y,
             size: this.symbolSize,
             symbol: this.p.random(this.symbolImages),
-            rotation: 0
+            rotation: 0,
           });
         }
         break;
@@ -170,23 +172,37 @@ export class SymbolFormation {
 
   update() {
     this.lifeTime++;
-    this.rotation += this.rotationStep;
+    this.animationTime++; // Continuous counter that never resets
+
+    // Only apply rotation for circle formations
+    if (this.formationType === FORMATIONS.CIRCLE) {
+      this.rotation += this.rotationStep;
+    }
+
+    // Apply sin wave movement for line formations
+    if (this.formationType === FORMATIONS.LINE) {
+      for (let i = 0; i < this.symbols.length; i++) {
+        // Create a gentle wave effect with alternating phases using animationTime
+        this.symbols[i].currentY =
+          Math.sin(this.animationTime * 0.03 + i * 0.5) * 10;
+      }
+    }
 
     // Update state and opacity
-    if (this.state === 'fadeIn') {
+    if (this.state === "fadeIn") {
       this.opacity = this.p.min(255, this.opacity + this.fadeInStep);
       if (this.opacity >= 255) {
-        this.state = 'display';
+        this.state = "display";
         this.lifeTime = 0;
       }
-    } else if (this.state === 'display') {
+    } else if (this.state === "display") {
       if (this.lifeTime >= this.displayDuration) {
-        this.state = 'fadeOut';
+        this.state = "fadeOut";
       }
-    } else if (this.state === 'fadeOut') {
+    } else if (this.state === "fadeOut") {
       this.opacity = this.p.max(0, this.opacity - this.fadeOutStep);
       if (this.opacity <= 0) {
-        this.state = 'done';
+        this.state = "done";
       }
     }
   }
@@ -203,14 +219,22 @@ export class SymbolFormation {
     for (let symbol of this.symbols) {
       if (symbol && symbol.symbol) {
         p.push();
-        p.translate(symbol.x, symbol.y);
+        // Use currentY for vertical offset if available (for line formations)
+        const yPos =
+          symbol.currentY !== undefined ? symbol.y + symbol.currentY : symbol.y;
+        p.translate(symbol.x, yPos);
         p.rotate(-this.rotation); // Counter-rotate to keep symbols upright
-
 
         // --- Symbol ---
         p.noTint();
         p.tint(255, this.opacity);
-        p.image(symbol.symbol, -symbol.size / 2, -symbol.size / 2, symbol.size, symbol.size);
+        p.image(
+          symbol.symbol,
+          -symbol.size / 2,
+          -symbol.size / 2,
+          symbol.size,
+          symbol.size,
+        );
         p.pop();
       }
     }

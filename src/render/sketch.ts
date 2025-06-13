@@ -1,20 +1,9 @@
 import {
   FORMATIONS,
   type FormationType,
-  SymbolFormation,
-} from "./SymbolFormation.ts";
+  SymbolsGroup,
+} from "./SymbolsGroup.ts";
 import p5 from "p5";
-
-export interface SymbolData {
-  x: number;
-  y: number;
-  size: number;
-  symbol: p5.Image;
-  rotation: number;
-  currentX?: number;
-  currentY?: number;
-  history?: Array<{ x: number; y: number }>;
-}
 
 interface GridPosition {
   row: number;
@@ -30,7 +19,7 @@ for (let i = 0; i < 256; i++) {
 export function sketch(p: p5) {
   let symbolImages: p5.Image[] = [];
   // Properly type our variables
-  let formations: SymbolFormation[] = [];
+  let formations: SymbolsGroup[] = [];
   let fadeDuration = 40;
   let displayDuration = 80;
   let maxFormations = 5;
@@ -41,7 +30,7 @@ export function sketch(p: p5) {
   let voidColor = [20, 10, 30];
   let voidShader: p5.Shader | null = null;
   let voidBuffer: p5.Graphics;
-  let shaderReady = false;
+  let mousePos = { x: 0.5, y: 0.5, active: false }; // Initialize mouse position
 
   p.setup = async function setup() {
     // Load shader files - use correct Vite paths
@@ -61,27 +50,22 @@ export function sketch(p: p5) {
     // Initialize other variables
     lastFormationComplete = true;
 
-    // Mark shader as ready
-    shaderReady = voidShader !== null;
+    // Setup mouse interaction
+    p.mouseMoved = () => {
+      // Convert to normalized coordinates (0-1 range)
+      // In WebGL mode, we need to adjust for the center origin
+      mousePos.x = p.mouseX / p.width;
+      // Invert Y for shader coordinate system which has origin at bottom-left
+      mousePos.y = 1.0 - p.mouseY / p.height;
+      mousePos.active = true;
+      return false; // prevent default
+    };
   };
 
   p.draw = function () {
     // Clear everything first
     p.clear();
-
-    // Draw void background using shader
-    // Draw void background using shader (with error handling)
-    if (shaderReady && voidShader) {
-      try {
-        drawVoidBackground();
-      } catch (e) {
-        console.error("Error drawing void background:", e);
-        shaderReady = false;
-      }
-    } else {
-      // Fallback background if shader fails
-      p.background(voidColor[0], voidColor[1], voidColor[2]);
-    }
+    drawVoidBackground();
 
     // Draw formations
     let allComplete = true;
@@ -110,50 +94,81 @@ export function sketch(p: p5) {
 
     // Create new formation if conditions are met
     if (formations.length < maxFormations && lastFormationComplete) {
-      createNewFormation();
+      createNewSymbolsGroup();
     }
   };
 
+  function createNewSymbolsGroup() {
+    if (!lastFormationComplete) return;
+
+    const position = calculateGridPosition();
+
+    let formationType: FormationType;
+    const rand = p.random();
+    if (rand < 0.5) formationType = FORMATIONS.LINE;
+    else formationType = FORMATIONS.CIRCLE;
+
+    const centerX = p.width / 2;
+    const centerY = p.height / 2;
+
+    const formation = new SymbolsGroup(p, symbolImages, {
+      x: position.x - centerX,
+      y: position.y - centerY,
+      length: p.random(5, 20),
+      fadeInDuration: fadeDuration,
+      displayDuration: displayDuration,
+      formationType: formationType,
+      rotationDirection: p.random([-1, 1]),
+      scale: p.random(0.6, 1),
+      isCenter: false,
+    });
+
+    formations.push(formation);
+    lastFormationComplete = false;
+  }
+
   function drawVoidBackground() {
-    if (!shaderReady || !voidShader) {
+    if (!voidShader) {
       console.warn("Shader not ready yet");
       return;
     }
 
     voidBuffer.shader(voidShader);
 
+    // Basic uniforms
     voidShader.setUniform("u_resolution", [
       voidBuffer.width * 2,
       voidBuffer.height * 2,
     ]);
-    voidShader.setUniform("u_time", p.frameCount * 0.1);
+    voidShader.setUniform("u_time", p.frameCount * 0.005);
     voidShader.setUniform("u_voidColor", [
       voidColor[0] / 255,
       voidColor[1] / 255,
       voidColor[2] / 255,
     ]);
-    voidShader.setUniform("u_brightness", 1);
 
-    voidBuffer.clear();
+    // Dynamic brightness based on sin wave for subtle pulsing
+    const pulsingBrightness = 1.0 + Math.sin(p.frameCount * 0.02) * 0.15;
+    voidShader.setUniform("u_brightness", pulsingBrightness);
+    voidShader.setUniform("u_mouse", [mousePos.x, mousePos.y]);
+    voidShader.setUniform("u_mouseActive", mousePos.active);
 
     // Draw a full-screen quad (covers the whole buffer in WebGL mode)
+    voidBuffer.clear();
     voidBuffer.push();
     voidBuffer.noStroke();
     voidBuffer.beginShape();
-
     voidBuffer.vertex(-voidBuffer.width / 2, -voidBuffer.height / 2, 0, 0);
     voidBuffer.vertex(voidBuffer.width / 2, -voidBuffer.height / 2, 1, 0);
     voidBuffer.vertex(voidBuffer.width / 2, voidBuffer.height / 2, 1, 1);
     voidBuffer.vertex(-voidBuffer.width / 2, voidBuffer.height / 2, 0, 1);
     voidBuffer.endShape(p.CLOSE);
-
     voidBuffer.pop();
-
-    voidBuffer.resetShader();
 
     p.push();
     p.image(voidBuffer, -p.width / 2, -p.height / 2, p.width, p.height);
     p.pop();
+    voidBuffer.resetShader();
   }
 
   function calculateGridPosition(): { x: number; y: number } {
@@ -176,34 +191,5 @@ export function sketch(p: p5) {
     }
 
     return { x, y };
-  }
-
-  function createNewFormation() {
-    if (!lastFormationComplete) return;
-
-    const position = calculateGridPosition();
-
-    let formationType: FormationType;
-    const rand = p.random();
-    if (rand < 0.5) formationType = FORMATIONS.LINE;
-    else formationType = FORMATIONS.CIRCLE;
-
-    const centerX = p.width / 2;
-    const centerY = p.height / 2;
-
-    const formation = new SymbolFormation(p, symbolImages, {
-      x: position.x - centerX,
-      y: position.y - centerY,
-      length: p.random(5, 20),
-      fadeInDuration: fadeDuration,
-      displayDuration: displayDuration,
-      formationType: formationType,
-      rotationDirection: p.random([-1, 1]),
-      scale: p.random(1, 1.5),
-      isCenter: false,
-    });
-
-    formations.push(formation);
-    lastFormationComplete = false;
   }
 }
