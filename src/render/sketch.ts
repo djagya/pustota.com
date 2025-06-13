@@ -45,10 +45,7 @@ export function sketch(p: p5) {
 
   p.setup = async function setup() {
     // Load shader files - use correct Vite paths
-    voidShader = await p.loadShader(
-      "/src/shaders/void.vert",
-      "/src/shaders/void.frag",
-    );
+    voidShader = await p.loadShader("/shaders/void.vert", "/shaders/void.frag");
     // Load all symbol images - use correct Vite paths
     for (let i = 1; i <= 26; i++) {
       const img = await p.loadImage(`/assets/symbols/symbol-${i}.png`);
