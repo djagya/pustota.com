@@ -20,8 +20,8 @@ export function sketch(p: p5) {
   let symbolImages: p5.Image[] = [];
   // Properly type our variables
   let formations: SymbolsGroup[] = [];
-  let fadeDuration = 40;
-  let displayDuration = 80;
+  let fadeDuration = 50;
+  let displayDuration = 140;
   let maxFormations = 5;
   let currentGridPosition: GridPosition = { row: 1, col: 1 };
   const GRID_ROWS = 3;
@@ -31,6 +31,7 @@ export function sketch(p: p5) {
   let voidShader: p5.Shader | null = null;
   let voidBuffer: p5.Graphics;
   let mousePos = { x: 0.5, y: 0.5, active: false }; // Initialize mouse position
+  let isHoveringSigil = false;
 
   p.setup = async function setup() {
     // Load shader files - use correct Vite paths
@@ -59,6 +60,19 @@ export function sketch(p: p5) {
       mousePos.y = 1.0 - p.mouseY / p.height;
       mousePos.active = true;
       return false; // prevent default
+    };
+
+    // Click on a sigil → open the manifesto.
+    p.mouseClicked = () => {
+      const mx = p.mouseX - p.width / 2;
+      const my = p.mouseY - p.height / 2;
+      for (const formation of formations) {
+        if (formation && formation.hitTest && formation.hitTest(mx, my)) {
+          window.location.href = "/manifesto/";
+          return false;
+        }
+      }
+      return undefined;
     };
   };
 
@@ -95,6 +109,21 @@ export function sketch(p: p5) {
     // Create new formation if conditions are met
     if (formations.length < maxFormations && lastFormationComplete) {
       createNewSymbolsGroup();
+    }
+
+    // Update cursor when the pointer enters/leaves a clickable sigil.
+    const mx = p.mouseX - p.width / 2;
+    const my = p.mouseY - p.height / 2;
+    let hovering = false;
+    for (const formation of formations) {
+      if (formation && formation.hitTest && formation.hitTest(mx, my)) {
+        hovering = true;
+        break;
+      }
+    }
+    if (hovering !== isHoveringSigil) {
+      isHoveringSigil = hovering;
+      document.body.style.cursor = hovering ? "pointer" : "default";
     }
   };
 

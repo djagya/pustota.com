@@ -207,6 +207,29 @@ export class SymbolsGroup {
     }
   }
 
+  /**
+   * Returns true if the given point (in centered canvas coordinates,
+   * matching the WebGL renderer's origin) lies inside one of the visible
+   * symbols of this formation. Used to make sigils clickable.
+   */
+  hitTest(mx: number, my: number): boolean {
+    if (this.opacity < 60) return false;
+    const cos = Math.cos(this.rotation);
+    const sin = Math.sin(this.rotation);
+    for (const symbol of this.symbols) {
+      if (!symbol || !symbol.symbol) continue;
+      const sy =
+        symbol.currentY !== undefined ? symbol.y + symbol.currentY : symbol.y;
+      const wx = this.x + symbol.x * cos - sy * sin;
+      const wy = this.y + symbol.x * sin + sy * cos;
+      const dx = mx - wx;
+      const dy = my - wy;
+      const r = symbol.size * 0.55;
+      if (dx * dx + dy * dy < r * r) return true;
+    }
+    return false;
+  }
+
   show() {
     if (this.opacity <= 0) return;
     const p = this.p;
