@@ -62,13 +62,13 @@ export function sketch(p: p5) {
       return false; // prevent default
     };
 
-    // Click on a sigil → open the manifesto.
+    // Click on a sigil → open the credo.
     p.mouseClicked = () => {
       const mx = p.mouseX - p.width / 2;
       const my = p.mouseY - p.height / 2;
       for (const formation of formations) {
         if (formation && formation.hitTest && formation.hitTest(mx, my)) {
-          window.location.href = "/manifesto/";
+          window.location.href = "/credo/";
           return false;
         }
       }

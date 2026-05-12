@@ -410,7 +410,7 @@ body {
   letter-spacing: 0.01em;
 }
 
-/* Drop-cap on the first sentence of the manifesto */
+/* Drop-cap on the first sentence of the credo */
 .prose__lede::first-letter {
   initial-letter: 2;
   -webkit-initial-letter: 2;
