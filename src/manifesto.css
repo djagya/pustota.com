@@ -24,6 +24,7 @@ body {
 }
 
 body {
+  position: relative;
   overflow-x: hidden;
   overflow-y: auto;
   min-height: 100vh;
@@ -34,6 +35,38 @@ body {
   line-height: 1.78;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* ───────── Alchemical sigils on the side rails ───────── */
+
+.alch-rails {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.alch {
+  position: absolute;
+  color: var(--gold);
+  opacity: 0.1;
+  filter: drop-shadow(0 0 8px rgba(216, 178, 90, 0.45));
+  animation: alch-breath 16s ease-in-out infinite;
+  animation-delay: var(--alch-delay, 0s);
+}
+
+@keyframes alch-breath {
+  0%, 100% { opacity: var(--alch-min, 0.06); transform: rotate(0deg); }
+  50%      { opacity: var(--alch-max, 0.16); transform: rotate(0.5deg); }
+}
+
+@media (max-width: 1024px) {
+  .alch-rails { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alch { animation: none; opacity: 0.1; }
 }
 
 /* ───────── Background veil ───────── */

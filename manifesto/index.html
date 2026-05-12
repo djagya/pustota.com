@@ -14,6 +14,68 @@
   </head>
   <body>
     <div class="veil" aria-hidden="true"></div>
+
+    <svg style="position: absolute; width: 0; height: 0; overflow: hidden" aria-hidden="true">
+      <defs>
+        <symbol id="alch-sulfur" viewBox="0 0 32 32">
+          <polygon points="16,4 26,18 6,18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+          <line x1="16" y1="18" x2="16" y2="29" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+          <line x1="11" y1="24" x2="21" y2="24" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+        </symbol>
+        <symbol id="alch-salt" viewBox="0 0 32 32">
+          <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="1.4" />
+          <line x1="5" y1="16" x2="27" y2="16" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+        </symbol>
+        <symbol id="alch-mercury" viewBox="0 0 32 32">
+          <path d="M9 5 Q16 14 23 5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+          <circle cx="16" cy="14" r="4" fill="none" stroke="currentColor" stroke-width="1.4" />
+          <line x1="16" y1="18" x2="16" y2="28" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+          <line x1="11" y1="24" x2="21" y2="24" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+        </symbol>
+        <symbol id="alch-air" viewBox="0 0 32 32">
+          <polygon points="16,4 28,26 4,26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+          <line x1="9" y1="18" x2="23" y2="18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+        </symbol>
+        <symbol id="alch-fire" viewBox="0 0 32 32">
+          <polygon points="16,4 28,26 4,26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+        </symbol>
+        <symbol id="alch-water" viewBox="0 0 32 32">
+          <polygon points="4,6 28,6 16,28" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+        </symbol>
+        <symbol id="alch-earth" viewBox="0 0 32 32">
+          <polygon points="4,6 28,6 16,28" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+          <line x1="9" y1="14" x2="23" y2="14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+        </symbol>
+        <symbol id="alch-quint" viewBox="0 0 32 32">
+          <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="1.4" />
+          <polygon points="16,8 23,21 9,21" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+        </symbol>
+        <symbol id="alch-saturn" viewBox="0 0 32 32">
+          <line x1="14" y1="4" x2="14" y2="20" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+          <line x1="9" y1="9" x2="19" y2="9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+          <path d="M14 20 Q22 22 24 28" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="alch-rails" aria-hidden="true">
+      <svg class="alch" style="top:  6rem; left: 6%;  width: 36px; height: 36px; --alch-delay:  0s; --alch-min: .07; --alch-max: .16;"><use href="#alch-sulfur" /></svg>
+      <svg class="alch" style="top: 22rem; left: 9%;  width: 26px; height: 26px; --alch-delay:  3s; --alch-min: .05; --alch-max: .12;"><use href="#alch-salt" /></svg>
+      <svg class="alch" style="top: 42rem; left: 4%;  width: 40px; height: 40px; --alch-delay:  7s; --alch-min: .07; --alch-max: .17;"><use href="#alch-mercury" /></svg>
+      <svg class="alch" style="top: 64rem; left: 8%;  width: 30px; height: 30px; --alch-delay:  2s; --alch-min: .05; --alch-max: .13;"><use href="#alch-fire" /></svg>
+      <svg class="alch" style="top: 86rem; left: 5%;  width: 34px; height: 34px; --alch-delay:  9s; --alch-min: .06; --alch-max: .14;"><use href="#alch-air" /></svg>
+      <svg class="alch" style="top:108rem; left: 9%;  width: 28px; height: 28px; --alch-delay:  5s; --alch-min: .05; --alch-max: .12;"><use href="#alch-saturn" /></svg>
+      <svg class="alch" style="top:132rem; left: 4%;  width: 38px; height: 38px; --alch-delay: 11s; --alch-min: .07; --alch-max: .17;"><use href="#alch-quint" /></svg>
+
+      <svg class="alch" style="top: 14rem; right: 6%; width: 32px; height: 32px; --alch-delay:  4s; --alch-min: .06; --alch-max: .14;"><use href="#alch-water" /></svg>
+      <svg class="alch" style="top: 34rem; right: 4%; width: 40px; height: 40px; --alch-delay:  1s; --alch-min: .07; --alch-max: .17;"><use href="#alch-earth" /></svg>
+      <svg class="alch" style="top: 54rem; right: 8%; width: 26px; height: 26px; --alch-delay:  6s; --alch-min: .05; --alch-max: .12;"><use href="#alch-mercury" /></svg>
+      <svg class="alch" style="top: 76rem; right: 5%; width: 34px; height: 34px; --alch-delay:  8s; --alch-min: .07; --alch-max: .15;"><use href="#alch-sulfur" /></svg>
+      <svg class="alch" style="top: 98rem; right: 9%; width: 28px; height: 28px; --alch-delay:  3s; --alch-min: .05; --alch-max: .12;"><use href="#alch-salt" /></svg>
+      <svg class="alch" style="top:120rem; right: 4%; width: 36px; height: 36px; --alch-delay: 10s; --alch-min: .07; --alch-max: .16;"><use href="#alch-quint" /></svg>
+      <svg class="alch" style="top:144rem; right: 7%; width: 30px; height: 30px; --alch-delay: 12s; --alch-min: .06; --alch-max: .13;"><use href="#alch-saturn" /></svg>
+    </div>
+
     <a class="back" href="/">← Pustota</a>
 
     <nav class="lang" aria-label="Language">
