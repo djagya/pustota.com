@@ -643,3 +643,43 @@ body {
     animation: none !important;
   }
 }
+
+/* Stub: title-only credo — remove .credo-page--stub from <body> to show full text again */
+
+body.credo-page--stub main.scroll,
+body.credo-page--stub .alch-rails,
+body.credo-page--stub > svg[aria-hidden="true"] {
+  display: none !important;
+}
+
+body.credo-page--stub .hero__watermark,
+body.credo-page--stub .hero__sigils,
+body.credo-page--stub .hero__tagline {
+  display: none !important;
+}
+
+body.credo-page--stub .hero::after {
+  display: none;
+}
+
+body.credo-page--stub {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body.credo-page--stub .hero {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(4rem, 12vh, 8rem) 1.5rem;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+body.credo-page--stub .hero__title {
+  margin: 0;
+  text-align: center;
+}
