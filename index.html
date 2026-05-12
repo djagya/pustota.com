@@ -1,12 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pustota</title>
-</head>
-<body>
-  
-<script type="module" src="/src/main.ts"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pustota — architecture of radical sincerity</title>
+    <meta
+      name="description"
+      content="Pustota is a working name for a space where psyche, technology, body, money, art, memory, Eros and thought become one architecture. Read the manifesto."
+    />
+    <meta name="theme-color" content="#06040a" />
+
+    <meta property="og:title" content="Pustota — architecture of radical sincerity" />
+    <meta
+      property="og:description"
+      content="A space where psyche, technology, body, money, art, memory, Eros and thought become one architecture."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://pustota.com/" />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* Static layer that exists with or without JS — ensures SEO,
+         link-preview and accessibility, and offers a textual entry
+         to the manifesto regardless of canvas state. */
+      .static-entry {
+        position: fixed;
+        inset: 0;
+        z-index: 5;
+        pointer-events: none;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding: 2rem 1.5rem;
+        font-family: "Cormorant Garamond", "Times New Roman", serif;
+        color: #b9ad94;
+        text-align: center;
+      }
+      .static-entry__content {
+        pointer-events: auto;
+        max-width: 30rem;
+      }
+      .static-entry h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+        font-weight: 500;
+        font-style: italic;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #d8b25a;
+        opacity: 0.8;
+      }
+      .static-entry p {
+        margin: 0 0 0.75rem;
+        font-size: 0.95rem;
+        font-style: italic;
+        color: #8a7a9e;
+        line-height: 1.5;
+      }
+      .static-entry a {
+        color: #d8b25a;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(216, 178, 90, 0.4);
+        padding-bottom: 1px;
+        font-style: italic;
+        letter-spacing: 0.05em;
+      }
+      .static-entry a:hover {
+        color: #ece4d3;
+        border-bottom-color: #ece4d3;
+      }
+
+      /* When JS boots, hide the verbose copy and show only a subtle
+         bottom-line hint that fades in/out, then leaves the field. */
+      .js .static-entry h1,
+      .js .static-entry p {
+        display: none;
+      }
+      .js .static-entry {
+        animation: hint 18s ease forwards;
+        animation-delay: 4s;
+        opacity: 0;
+      }
+      .js .static-entry .hint {
+        font-size: 0.85rem;
+        font-style: italic;
+        letter-spacing: 0.18em;
+        color: #b9ad94;
+        opacity: 0.75;
+        line-height: 1.7;
+      }
+      .js .static-entry .hint span {
+        display: block;
+      }
+      .js .static-entry .hint .ru {
+        color: #8a7a9e;
+        font-size: 0.78rem;
+        margin-top: 0.15rem;
+      }
+      .js .static-entry .hint__no-js {
+        display: none;
+      }
+
+      @keyframes hint {
+        0%, 5%   { opacity: 0; transform: translateY(8px); }
+        25%, 65% { opacity: 1; transform: translateY(0); }
+        90%, 100%{ opacity: 0; transform: translateY(0); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .js .static-entry {
+          animation: none;
+          opacity: 1;
+        }
+      }
+
+      noscript .static-entry { animation: none !important; opacity: 1 !important; }
+    </style>
+  </head>
+  <body>
+    <a class="static-entry" href="/manifesto/" aria-label="Read the manifesto">
+      <span class="static-entry__content">
+        <h1 class="hint__no-js">Pustota</h1>
+        <p class="hint__no-js">
+          Architecture of radical sincerity — discipline of form, anti-dissociation, method of discernment.
+        </p>
+        <span class="hint" aria-hidden="false">
+          <span class="en">touch a sigil to enter the manifesto</span>
+          <span class="ru">прикоснись к знаку, чтобы войти</span>
+        </span>
+      </span>
+    </a>
+
+    <noscript>
+      <style>
+        .static-entry { background: rgba(6, 4, 10, 0.9); }
+        .static-entry h1, .static-entry p { display: block !important; }
+        .static-entry .hint { display: none; }
+      </style>
+    </noscript>
+
+    <script>
+      // Mark <html> with .js so CSS can switch from the static SEO copy
+      // to the subtle in-canvas hint without a flash on no-JS environments.
+      document.documentElement.classList.add("js");
+    </script>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>
