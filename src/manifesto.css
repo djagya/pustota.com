@@ -50,15 +50,16 @@ body {
 .alch {
   position: absolute;
   color: var(--gold);
-  opacity: 0.1;
-  filter: drop-shadow(0 0 8px rgba(216, 178, 90, 0.45));
+  opacity: 0.13;
+  filter: drop-shadow(0 0 12px rgba(216, 178, 90, 0.65))
+          drop-shadow(0 0 4px rgba(244, 228, 188, 0.35));
   animation: alch-breath 16s ease-in-out infinite;
   animation-delay: var(--alch-delay, 0s);
 }
 
 @keyframes alch-breath {
-  0%, 100% { opacity: var(--alch-min, 0.06); transform: rotate(0deg); }
-  50%      { opacity: var(--alch-max, 0.16); transform: rotate(0.5deg); }
+  0%, 100% { opacity: var(--alch-min, 0.08); transform: rotate(0deg); }
+  50%      { opacity: var(--alch-max, 0.22); transform: rotate(0.5deg); }
 }
 
 @media (max-width: 1024px) {
